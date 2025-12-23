@@ -2,42 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import VoiceButton from './VoiceButton'
 import MessageBubble from './MessageBubble'
 import ApiKeyModal from './ApiKeyModal'
-import { sendMessage, hasApiKey } from '../utils/openai'
-
-// Text-to-speech helper
-const speak = (text, onStart, onEnd) => {
-  if (!('speechSynthesis' in window)) return
-
-  // Cancel any ongoing speech
-  window.speechSynthesis.cancel()
-
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.rate = 0.95
-  utterance.pitch = 1
-  utterance.volume = 1
-
-  // Try to get a natural-sounding voice
-  const voices = window.speechSynthesis.getVoices()
-  const preferredVoice = voices.find(v =>
-    v.name.includes('Samantha') ||
-    v.name.includes('Google') ||
-    v.name.includes('Natural') ||
-    v.lang.startsWith('en')
-  )
-  if (preferredVoice) utterance.voice = preferredVoice
-
-  utterance.onstart = onStart
-  utterance.onend = onEnd
-  utterance.onerror = onEnd
-
-  window.speechSynthesis.speak(utterance)
-}
-
-const stopSpeaking = () => {
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel()
-  }
-}
+import { sendMessage, hasApiKey, textToSpeech } from '../utils/openai'
 
 export default function ChatView({ session, onUpdateSession, onStartSession }) {
   const [messages, setMessages] = useState([])
@@ -50,6 +15,7 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false)
   const [textInput, setTextInput] = useState('')
   const messagesEndRef = useRef(null)
+  const audioRef = useRef(null)
 
   useEffect(() => {
     if (session?.messages) {
@@ -63,13 +29,48 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Load voices when component mounts
+  // Cleanup audio on unmount
   useEffect(() => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.getVoices()
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
     }
-    return () => stopSpeaking()
   }, [])
+
+  const stopSpeaking = () => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+    }
+    setIsSpeaking(false)
+  }
+
+  const speak = async (text) => {
+    try {
+      setIsSpeaking(true)
+      const audioUrl = await textToSpeech(text)
+
+      const audio = new Audio(audioUrl)
+      audioRef.current = audio
+
+      audio.onended = () => {
+        setIsSpeaking(false)
+        URL.revokeObjectURL(audioUrl)
+      }
+
+      audio.onerror = () => {
+        setIsSpeaking(false)
+        URL.revokeObjectURL(audioUrl)
+      }
+
+      await audio.play()
+    } catch (error) {
+      console.error('TTS error:', error)
+      setIsSpeaking(false)
+    }
+  }
 
   const toggleVoice = () => {
     const newValue = !voiceEnabled
@@ -88,7 +89,6 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
 
     // Stop any ongoing speech
     stopSpeaking()
-    setIsSpeaking(false)
 
     // Start a new session if none exists
     if (!session) {
@@ -109,11 +109,7 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
 
       // Speak the response if voice is enabled
       if (voiceEnabled) {
-        speak(
-          response,
-          () => setIsSpeaking(true),
-          () => setIsSpeaking(false)
-        )
+        speak(response)
       }
     } catch (error) {
       console.error('Error:', error)
