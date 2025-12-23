@@ -4,9 +4,49 @@ import MessageBubble from './MessageBubble'
 import ApiKeyModal from './ApiKeyModal'
 import { sendMessage, hasApiKey } from '../utils/openai'
 
+// Text-to-speech helper
+const speak = (text, onStart, onEnd) => {
+  if (!('speechSynthesis' in window)) return
+
+  // Cancel any ongoing speech
+  window.speechSynthesis.cancel()
+
+  const utterance = new SpeechSynthesisUtterance(text)
+  utterance.rate = 0.95
+  utterance.pitch = 1
+  utterance.volume = 1
+
+  // Try to get a natural-sounding voice
+  const voices = window.speechSynthesis.getVoices()
+  const preferredVoice = voices.find(v =>
+    v.name.includes('Samantha') ||
+    v.name.includes('Google') ||
+    v.name.includes('Natural') ||
+    v.lang.startsWith('en')
+  )
+  if (preferredVoice) utterance.voice = preferredVoice
+
+  utterance.onstart = onStart
+  utterance.onend = onEnd
+  utterance.onerror = onEnd
+
+  window.speechSynthesis.speak(utterance)
+}
+
+const stopSpeaking = () => {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
+  }
+}
+
 export default function ChatView({ session, onUpdateSession, onStartSession }) {
   const [messages, setMessages] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const [voiceEnabled, setVoiceEnabled] = useState(() => {
+    const saved = localStorage.getItem('reframe_voice_enabled')
+    return saved !== null ? saved === 'true' : true
+  })
   const [showApiKeyModal, setShowApiKeyModal] = useState(false)
   const [textInput, setTextInput] = useState('')
   const messagesEndRef = useRef(null)
@@ -23,6 +63,21 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // Load voices when component mounts
+  useEffect(() => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.getVoices()
+    }
+    return () => stopSpeaking()
+  }, [])
+
+  const toggleVoice = () => {
+    const newValue = !voiceEnabled
+    setVoiceEnabled(newValue)
+    localStorage.setItem('reframe_voice_enabled', String(newValue))
+    if (!newValue) stopSpeaking()
+  }
+
   const handleSendMessage = async (content) => {
     if (!content.trim()) return
 
@@ -30,6 +85,10 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
       setShowApiKeyModal(true)
       return
     }
+
+    // Stop any ongoing speech
+    stopSpeaking()
+    setIsSpeaking(false)
 
     // Start a new session if none exists
     if (!session) {
@@ -47,6 +106,15 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
       const updatedMessages = [...newMessages, assistantMessage]
       setMessages(updatedMessages)
       onUpdateSession(updatedMessages)
+
+      // Speak the response if voice is enabled
+      if (voiceEnabled) {
+        speak(
+          response,
+          () => setIsSpeaking(true),
+          () => setIsSpeaking(false)
+        )
+      }
     } catch (error) {
       console.error('Error:', error)
       const errorMessage = {
@@ -194,6 +262,28 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
               </svg>
             </button>
           </form>
+
+          {/* Voice toggle button */}
+          <button
+            onClick={toggleVoice}
+            className={`p-3 rounded-xl transition-all ${
+              voiceEnabled
+                ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                : 'bg-zinc-800/50 text-zinc-500 border border-white/5'
+            } ${isSpeaking ? 'animate-pulse' : ''}`}
+            title={voiceEnabled ? 'Voice responses on' : 'Voice responses off'}
+          >
+            {voiceEnabled ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
 
