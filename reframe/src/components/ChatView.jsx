@@ -80,37 +80,45 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
   // Empty state - no session started
   if (!session && messages.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-6">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-light text-zinc-200 mb-2">
+      <div className="h-full flex flex-col items-center justify-center p-6 relative">
+        {/* Decorative elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="text-center mb-10 relative">
+          <h2 className="text-3xl font-light text-white mb-3 tracking-tight">
             What's on your mind?
           </h2>
-          <p className="text-zinc-500 text-sm">
-            Share a thought, and I'll help you see it differently.
+          <p className="text-zinc-400 text-base max-w-xs mx-auto">
+            Share a thought, and I'll help you see it from a new perspective.
           </p>
         </div>
 
-        <VoiceButton
-          onTranscript={handleVoiceTranscript}
-          disabled={isLoading}
-        />
+        <div className="relative">
+          <VoiceButton
+            onTranscript={handleVoiceTranscript}
+            disabled={isLoading}
+          />
+        </div>
 
-        <div className="mt-8 w-full max-w-md">
-          <form onSubmit={handleTextSubmit} className="flex gap-2">
+        <div className="mt-10 w-full max-w-md relative">
+          <form onSubmit={handleTextSubmit} className="flex gap-3">
             <input
               type="text"
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
-              placeholder="Or type here..."
-              className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-600"
+              placeholder="Or type your thoughts here..."
+              className="input-field flex-1 rounded-2xl px-5 py-4 text-zinc-100 placeholder-zinc-500 focus:outline-none"
             />
             <button
               type="submit"
               disabled={!textInput.trim() || isLoading}
-              className="bg-zinc-800 text-zinc-300 px-4 rounded-xl hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary text-white px-5 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </button>
           </form>
@@ -118,8 +126,11 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
 
         <button
           onClick={() => setShowApiKeyModal(true)}
-          className="mt-6 text-zinc-600 text-xs hover:text-zinc-400"
+          className="mt-8 text-zinc-500 text-sm hover:text-zinc-300 transition-colors flex items-center gap-2"
         >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+          </svg>
           {hasApiKey() ? 'Change API Key' : 'Set OpenAI API Key'}
         </button>
 
@@ -141,11 +152,11 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
 
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-zinc-800 text-zinc-400 px-4 py-3 rounded-2xl rounded-bl-md">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="message-assistant px-5 py-4 rounded-2xl rounded-bl-sm">
+              <div className="flex gap-1.5">
+                <span className="typing-dot w-2 h-2 bg-zinc-400 rounded-full" />
+                <span className="typing-dot w-2 h-2 bg-zinc-400 rounded-full" />
+                <span className="typing-dot w-2 h-2 bg-zinc-400 rounded-full" />
               </div>
             </div>
           </div>
@@ -155,11 +166,12 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
       </div>
 
       {/* Input area */}
-      <div className="border-t border-zinc-800 p-4 bg-zinc-950">
-        <div className="flex items-center gap-3">
+      <div className="glass-header border-t-0 border-b-0 p-4">
+        <div className="flex items-center gap-3 max-w-3xl mx-auto">
           <VoiceButton
             onTranscript={handleVoiceTranscript}
             disabled={isLoading}
+            compact
           />
 
           <form onSubmit={handleTextSubmit} className="flex-1 flex gap-2">
@@ -168,15 +180,15 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
               placeholder="Type a message..."
-              className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-600"
+              className="input-field flex-1 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-500 focus:outline-none"
             />
             <button
               type="submit"
               disabled={!textInput.trim() || isLoading}
-              className="bg-blue-600 text-white px-4 rounded-xl hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary text-white px-4 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </button>
           </form>

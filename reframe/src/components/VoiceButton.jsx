@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 
-export default function VoiceButton({ onTranscript, disabled }) {
+export default function VoiceButton({ onTranscript, disabled, compact = false }) {
   const [isListening, setIsListening] = useState(false)
   const [interimText, setInterimText] = useState('')
   const recognitionRef = useRef(null)
@@ -84,11 +84,14 @@ export default function VoiceButton({ onTranscript, disabled }) {
     )
   }
 
+  const buttonSize = compact ? 'w-12 h-12' : 'w-24 h-24'
+  const iconSize = compact ? 'w-5 h-5' : 'w-9 h-9'
+
   return (
-    <div className="flex flex-col items-center gap-3">
-      {interimText && (
-        <div className="text-zinc-400 text-sm italic px-4 text-center">
-          {interimText}...
+    <div className={`flex flex-col items-center ${compact ? 'gap-0' : 'gap-4'}`}>
+      {interimText && !compact && (
+        <div className="text-zinc-400 text-sm italic px-4 text-center max-w-xs">
+          "{interimText}..."
         </div>
       )}
 
@@ -96,32 +99,34 @@ export default function VoiceButton({ onTranscript, disabled }) {
         onClick={toggleListening}
         disabled={disabled}
         className={`
-          w-20 h-20 rounded-full flex items-center justify-center
-          transition-all duration-200 ease-out
+          voice-btn ${buttonSize} rounded-full flex items-center justify-center
+          ${isListening ? 'listening' : ''}
           ${disabled
-            ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+            ? 'bg-zinc-800/50 text-zinc-600 cursor-not-allowed'
             : isListening
-              ? 'bg-rose-500 text-white scale-110 shadow-lg shadow-rose-500/30'
-              : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 active:scale-95'
+              ? 'bg-gradient-to-br from-rose-500 to-pink-600 text-white shadow-lg shadow-rose-500/25'
+              : 'bg-gradient-to-br from-zinc-800 to-zinc-900 text-zinc-300 hover:text-white border border-white/10'
           }
         `}
         aria-label={isListening ? 'Stop recording' : 'Start recording'}
       >
         {isListening ? (
-          <svg className="w-8 h-8 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+          <svg className={`${iconSize} animate-pulse`} fill="currentColor" viewBox="0 0 24 24">
             <rect x="6" y="6" width="12" height="12" rx="2" />
           </svg>
         ) : (
-          <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+          <svg className={iconSize} fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
             <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
           </svg>
         )}
       </button>
 
-      <p className="text-zinc-500 text-sm">
-        {isListening ? 'Listening... tap to stop' : 'Tap to speak'}
-      </p>
+      {!compact && (
+        <p className={`text-sm font-medium ${isListening ? 'text-rose-400' : 'text-zinc-500'}`}>
+          {isListening ? 'Listening... tap to stop' : 'Tap to speak'}
+        </p>
+      )}
     </div>
   )
 }

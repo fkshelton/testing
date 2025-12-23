@@ -37,27 +37,29 @@ function App() {
   }
 
   return (
-    <div className="h-full bg-zinc-950 text-zinc-100 flex flex-col">
+    <div className="h-full gradient-bg text-zinc-100 flex flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-        <h1 className="text-lg font-medium tracking-tight text-zinc-100">Reframe</h1>
-        <nav className="flex gap-2">
+      <header className="glass-header flex items-center justify-between px-5 py-4 relative z-10">
+        <h1 className="text-xl font-semibold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+          Reframe
+        </h1>
+        <nav className="flex gap-1">
           <button
             onClick={() => { startNewSession(); setView('chat'); }}
-            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+            className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
               view === 'chat'
-                ? 'bg-zinc-800 text-zinc-100'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-white/10 text-white'
+                : 'text-zinc-400 hover:text-white hover:bg-white/5'
             }`}
           >
             New
           </button>
           <button
             onClick={() => setView('history')}
-            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+            className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
               view === 'history'
-                ? 'bg-zinc-800 text-zinc-100'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-white/10 text-white'
+                : 'text-zinc-400 hover:text-white hover:bg-white/5'
             }`}
           >
             History
@@ -66,7 +68,7 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-hidden relative z-0">
         {view === 'chat' ? (
           <ChatView
             session={currentSession}
