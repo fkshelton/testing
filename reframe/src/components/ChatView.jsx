@@ -16,6 +16,7 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
   const [textInput, setTextInput] = useState('')
   const messagesEndRef = useRef(null)
   const audioRef = useRef(null)
+  const speakingIdRef = useRef(0) // Track which speech request is active
 
   useEffect(() => {
     if (session?.messages) {
@@ -32,6 +33,7 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
   // Cleanup audio on unmount
   useEffect(() => {
     return () => {
+      speakingIdRef.current++ // Invalidate any pending speech
       if (audioRef.current) {
         audioRef.current.pause()
         audioRef.current = null
@@ -40,6 +42,7 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
   }, [])
 
   const stopSpeaking = () => {
+    speakingIdRef.current++ // Invalidate any pending speech
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current = null
@@ -48,27 +51,44 @@ export default function ChatView({ session, onUpdateSession, onStartSession }) {
   }
 
   const speak = async (text) => {
+    // Stop any existing audio first
+    stopSpeaking()
+
+    const currentId = ++speakingIdRef.current
+
     try {
       setIsSpeaking(true)
       const audioUrl = await textToSpeech(text)
+
+      // Check if this speech request is still valid
+      if (currentId !== speakingIdRef.current) {
+        URL.revokeObjectURL(audioUrl)
+        return
+      }
 
       const audio = new Audio(audioUrl)
       audioRef.current = audio
 
       audio.onended = () => {
-        setIsSpeaking(false)
+        if (currentId === speakingIdRef.current) {
+          setIsSpeaking(false)
+        }
         URL.revokeObjectURL(audioUrl)
       }
 
       audio.onerror = () => {
-        setIsSpeaking(false)
+        if (currentId === speakingIdRef.current) {
+          setIsSpeaking(false)
+        }
         URL.revokeObjectURL(audioUrl)
       }
 
       await audio.play()
     } catch (error) {
       console.error('TTS error:', error)
-      setIsSpeaking(false)
+      if (currentId === speakingIdRef.current) {
+        setIsSpeaking(false)
+      }
     }
   }
 
